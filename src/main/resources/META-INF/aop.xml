@@ -1,0 +1,9 @@
+<!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "https://www.eclipse.org/aspectj/dtd/aspectj.dtd">
+<aspectj>
+  <weaver options="-verbose -showWeaveInfo">
+    <include within="pe.axiz.payment.domain..*"/>
+  </weaver>
+  <aspects>
+    <aspect name="pe.axiz.payment.infrastructure.aop.DomainWeavingAspect"/>
+  </aspects>
+</aspectj>

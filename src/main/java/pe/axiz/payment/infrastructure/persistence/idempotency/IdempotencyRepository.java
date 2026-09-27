@@ -1,0 +1,1 @@
+package pe.axiz.payment.infrastructure.persistence.idempotency; import org.springframework.data.jpa.repository.JpaRepository; public interface IdempotencyRepository extends JpaRepository<IdempotencyEntity,String> {}

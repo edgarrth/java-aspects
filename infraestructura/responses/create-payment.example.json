@@ -1,0 +1,10 @@
+{
+  "id": "d9d8e4de-86cf-4ba9-a82d-20d7938bb0aa",
+  "merchantReference": "order-1001",
+  "amount": 150.50,
+  "currency": "PEN",
+  "status": "AUTHORIZED",
+  "gatewayReference": "gw_507eb414-02a6-49e6-833c-4b85b99c0224",
+  "createdAt": "2026-09-26T20:00:00Z",
+  "updatedAt": "2026-09-26T20:00:00Z"
+}

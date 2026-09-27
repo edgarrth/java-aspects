@@ -1,0 +1,16 @@
+### 1. Crear y autorizar pago
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: demo-001
+
+{"merchantReference":"order-1001","amount":150.50,"currency":"PEN"}
+
+### 2. Consultar diagnósticos de weaving
+GET http://localhost:8080/api/v1/aop/diagnostics
+
+### 3. Pago que fuerza dos fallas transitorias y demuestra retry
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: retry-001
+
+{"merchantReference":"order-retry","amount":13.37,"currency":"PEN"}

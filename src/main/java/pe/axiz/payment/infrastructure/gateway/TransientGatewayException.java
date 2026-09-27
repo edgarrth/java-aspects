@@ -1,0 +1,1 @@
+package pe.axiz.payment.infrastructure.gateway; public class TransientGatewayException extends RuntimeException { public TransientGatewayException(String message){super(message);} }
