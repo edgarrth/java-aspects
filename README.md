@@ -34,7 +34,8 @@ El servicio simula un procesador de pagos con este flujo:
 5. Luego puede pasar a `REFUNDED`.
 6. Si se intenta una transición inválida, el dominio la rechaza.
 
-El monto `13.37` tiene un comportamiento especial solo para la PoC: el gateway falla transitoriamente en los dos primeros intentos y funciona en el tercero. Eso permite comprobar el aspecto de retry sin depender de un proveedor externo.
+El monto `13.37` tiene un comportamiento especial solo para la PoC: el gateway falla transitoriamente en los dos 
+primeros intentos y funciona en el tercero. Eso permite comprobar el aspecto de retry sin depender de un proveedor externo.
 
 ## Caso de uso técnico: AOP y AspectJ
 
