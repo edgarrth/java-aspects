@@ -1,6 +1,8 @@
 # Payment Processing con Spring AOP + AspectJ
 
-Esta PoC la armé para probar AOP de verdad en un microservicio y no quedarme en el ejemplo típico de imprimir logs con un `@Around`. El caso funcional es un flujo simple de payment processing: crear/autorizar un pago, consultarlo, capturarlo y devolverlo. Sobre ese flujo implementé concerns transversales con Spring AOP y, donde los proxies de Spring ya no alcanzan, uso AspectJ Load-Time Weaving.
+PoC de AOP de en un microservicio. El caso funcional es un flujo simple de payment processing: crear/autorizar 
+un pago, consultarlo, capturarlo y devolverlo. Sobre ese flujo se implemento concerns transversales con Spring 
+AOP y, donde los proxies de Spring ya no alcanzan, uso AspectJ Load-Time Weaving.
 
 La idea principal es separar dos niveles:
 
@@ -21,19 +23,6 @@ Con esto se puede comparar en el mismo proyecto qué resuelve un proxy y qué re
 | Maven | 3.6.3+ | Build |
 | PostgreSQL | 18.6 | Persistencia de pagos, auditoría e idempotencia |
 | Flyway | Versión administrada por Boot | Creación y evolución de esquema |
-
-No agregué Kafka, MongoDB, Neo4j, Qdrant, KurrentDB, InfluxDB ni Drools porque ninguno es necesario para demostrar el caso técnico. Meterlos aquí haría más pesada la PoC sin mejorar la prueba de AOP.
-
-## Compatibilidad que dejé cerrada en esta versión
-
-Esta versión corrige los problemas que aparecieron al ejecutarla con el stack real:
-
-- PostgreSQL 18 monta el volumen persistente en `/var/lib/postgresql`, no en `/var/lib/postgresql/data`.
-- Spring Boot 4.1 usa Jackson 3; la idempotencia usa `tools.jackson.databind.json.JsonMapper` y no la API antigua `com.fasterxml.jackson.databind.ObjectMapper`.
-- `DomainWeavingAspect` se compila con `ajc` para que el bytecode del aspecto tenga `aspectOf()` y `hasAspect()`. El resto de la aplicación sigue compilándose con `javac`, así el weaving del dominio sigue ocurriendo en runtime mediante `-javaagent`.
-- Flyway se integra con `spring-boot-starter-flyway`. Esto incorpora la auto-configuración de Flyway de Spring Boot 4 y hace que las migraciones corran antes de la validación de Hibernate.
-
-Con esto mantengo una sola fuente de verdad para el esquema: `src/main/resources/db/migration`.
 
 ## Caso de uso funcional
 
@@ -79,7 +68,8 @@ El adapter del gateway usa:
 @RetryTransient(maxAttempts = 3, backoffMs = 75)
 ```
 
-`RetryAspect` aplica retry solo sobre `TransientGatewayException`. No reintenta cualquier excepción porque eso sería peligroso en pagos.
+`RetryAspect` aplica retry solo sobre `TransientGatewayException`. No reintenta cualquier excepción porque eso 
+sería peligroso en pagos.
 
 El backoff aumenta por intento y el número máximo de intentos queda declarado en la anotación.
 
@@ -134,9 +124,9 @@ El weaver está restringido a:
 pe.axiz.payment.domain..*
 ```
 
-El aspecto se compila previamente con `ajc`, pero las clases del dominio no. De esa forma los métodos sintéticos `aspectOf()` y `hasAspect()` existen en `DomainWeavingAspect`, mientras que `Payment` sigue siendo tejido por LTW cuando arranca la JVM con `aspectjweaver`.
-
-Eso es intencional. No conviene tejer todo el classpath porque aumenta costo, ruido y posibilidad de efectos laterales.
+El aspecto se compila previamente con `ajc`, pero las clases del dominio no. De esa forma los métodos 
+sintéticos `aspectOf()` y `hasAspect()` existen en `DomainWeavingAspect`, mientras que `Payment` sigue siendo 
+armado por LTW cuando arranca la JVM con `aspectjweaver`.
 
 El aspecto captura dos join points que muestran la diferencia con Spring AOP:
 
@@ -266,10 +256,6 @@ cd infraestructura
 docker compose up
 ```
 
-No uso `-d` para que sea fácil ver cuándo PostgreSQL termina de iniciar.
-
-El health check usa `pg_isready -q`, tiene intervalo de 30 segundos y no imprime el chequeo continuamente en los logs del contenedor.
-
 Para apagarlo:
 
 ```bash
@@ -298,9 +284,6 @@ Flyway crea:
 - `payments`;
 - `audit_events`;
 - `idempotency_records`.
-
-En Spring Boot 4 la auto-configuración de Flyway está en un módulo separado, por eso el proyecto usa `spring-boot-starter-flyway` además de `flyway-database-postgresql`. Flyway corre antes de que Hibernate haga la validación.
-
 Hibernate está configurado con `ddl-auto: validate`, así que valida el modelo pero no crea ni modifica tablas por detrás.
 
 ## Compilar y ejecutar
@@ -313,14 +296,6 @@ Maven 3.6.3 o superior
 Docker + Docker Compose
 ```
 
-Validar versiones:
-
-```bash
-java -version
-mvn -version
-docker --version
-docker compose version
-```
 
 ### 1. Compilar y ejecutar pruebas
 
@@ -366,12 +341,6 @@ Desde la raíz:
 ```
 
 El script recompila el JAR con Maven, aplica las migraciones pendientes de Flyway al arrancar y ejecuta la aplicación con `-javaagent`.
-
-Para ejecutarlo desde IntelliJ IDEA o un IDE similar, usar como VM option:
-
-```text
--javaagent:$HOME/.m2/repository/org/aspectj/aspectjweaver/1.9.25.1/aspectjweaver-1.9.25.1.jar
-```
 
 El agente es necesario para los join points de AspectJ. Si se ejecuta sin él, Spring AOP seguirá funcionando, pero el contador de weaving del dominio no se incrementará.
 
@@ -420,7 +389,7 @@ Qué debería pasar:
 - `AuditAspect` registra el resultado;
 - `PerformanceAspect` registra el tiempo.
 
-Respuesta esperada aproximada:
+Respuesta esperada:
 
 ```json
 {
@@ -460,7 +429,8 @@ curl -i -X POST http://localhost:8080/api/v1/payments \
   -d '{"merchantReference":"order-retry","amount":13.37,"currency":"PEN"}'
 ```
 
-El adapter falla en los intentos 1 y 2 y responde en el 3. La llamada final debe terminar en `AUTHORIZED` sin que el caso de uso conozca la lógica de retry.
+El adapter falla en los intentos 1 y 2 y responde en el 3. La llamada final debe terminar en `AUTHORIZED` sin que 
+el caso de uso conozca la lógica de retry.
 
 ### Test 4. Consultar el pago
 
@@ -526,67 +496,3 @@ También dejé:
 ```text
 infraestructura/requests.http
 ```
-
-Se puede ejecutar desde IntelliJ IDEA y contiene requests para el pago normal, diagnósticos de weaving y escenario de retry.
-
-## Decisiones importantes
-
-### Por qué no usé solo Spring AOP
-
-Spring AOP trabaja principalmente con proxies de beans de Spring. Eso está bien para servicios, adapters y concerns declarativos, pero no demuestra capacidades como:
-
-- constructor join points;
-- private method execution;
-- objetos creados fuera del contenedor;
-- ejecución interna dentro del mismo objeto sin pasar por un proxy.
-
-Por eso la PoC usa ambos mecanismos y deja claro dónde encaja cada uno.
-
-### Por qué no hice retry de cualquier excepción
-
-En pagos un retry indiscriminado puede duplicar efectos externos. El aspecto solo reintenta `TransientGatewayException` y tiene límite de intentos.
-
-### Por qué la idempotencia está persistida
-
-Una `ConcurrentHashMap` hubiera sido más corta, pero no representa una implementación profesional: se pierde al reiniciar, no se comparte entre instancias y no sirve para escalar horizontalmente. PostgreSQL permite que el concepto se acerque más a un escenario real.
-
-### Por qué Flyway y no SQL de Docker
-
-Tener Flyway y scripts de inicialización del contenedor haciendo lo mismo crea dos fuentes de verdad. Aquí Flyway es el dueño del esquema.
-
-## Límites intencionales de la PoC
-
-No integré un PSP real ni seguridad OAuth2 porque distraería del caso técnico. El gateway es simulado y determinista para poder probar retry. Tampoco agregué mensajería o event sourcing porque no son necesarios para verificar los join points, advice, orden de aspectos, weaving, idempotencia, métricas y auditoría.
-
-Si esto se llevara a producción, la siguiente evolución sería cambiar el gateway simulado por un adapter real y reforzar la exclusión mutua de la llave de idempotencia para múltiples instancias concurrentes.
-
-## Si ya ejecuté una versión anterior de esta PoC
-
-Como la versión anterior usaba el mount antiguo de PostgreSQL, para una PoC sin datos que conservar conviene recrear el volumen una sola vez:
-
-```bash
-cd infraestructura
-docker compose down -v
-docker compose up
-```
-
-Luego, desde otra terminal en la raíz:
-
-```bash
-mvn clean verify
-./scripts/run-with-aspectj.sh
-```
-
-Si quiero comprobar que Flyway dejó el esquema listo:
-
-```bash
-curl -s http://localhost:8080/actuator/flyway
-```
-
-También puedo revisar directamente PostgreSQL:
-
-```bash
-docker exec -it axiz-payment-postgres psql -U payments -d payments -c "\dt"
-```
-
-Deben existir `payments`, `audit_events`, `idempotency_records` y `flyway_schema_history`.
