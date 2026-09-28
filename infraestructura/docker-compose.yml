@@ -9,6 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # PostgreSQL 18+ usa /var/lib/postgresql como punto de montaje persistente.
       - payment_pg_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -q -U payments -d payments"]
@@ -17,5 +18,6 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+
 volumes:
   payment_pg_data:

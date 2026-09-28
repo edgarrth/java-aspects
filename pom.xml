@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.1.1</version>
         <relativePath/>
     </parent>
+
     <groupId>pe.axiz</groupId>
     <artifactId>payment-aspectj-poc</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>payment-aspectj-poc</name>
     <description>PoC avanzada de AOP con Spring y AspectJ para payment processing</description>
+
     <properties>
         <java.version>25</java.version>
         <aspectj.version>1.9.25.1</aspectj.version>
+        <aspectj-maven-plugin.version>1.14.1</aspectj-maven-plugin.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -38,36 +44,42 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
+
+        <!-- El starter de Boot 4 incluye la auto-configuración de Flyway. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
             <version>${aspectj.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -76,20 +88,15 @@
                     <parameters>true</parameters>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <argLine>
-                        -javaagent:${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar
-                    </argLine>
-                </configuration>
-            </plugin>
+
+            <!--
+              javac compila la aplicación. AJC recompila únicamente el aspecto LTW para
+              generar aspectOf()/hasAspect() sin hacer compile-time weaving del dominio.
+            -->
             <plugin>
                 <groupId>dev.aspectj</groupId>
                 <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.14.1</version>
-
+                <version>${aspectj-maven-plugin.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.aspectj</groupId>
@@ -97,25 +104,34 @@
                         <version>${aspectj.version}</version>
                     </dependency>
                 </dependencies>
-
                 <configuration>
                     <complianceLevel>25</complianceLevel>
                     <source>25</source>
                     <target>25</target>
-
                     <showWeaveInfo>true</showWeaveInfo>
-                    <verbose>true</verbose>
-                    <parameters>true</parameters>
+                    <verbose>false</verbose>
+                    <includes>
+                        <include>**/DomainWeavingAspect.java</include>
+                    </includes>
                 </configuration>
-
                 <executions>
                     <execution>
+                        <id>compile-ltw-aspect</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
-                            <goal>test-compile</goal>
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.6</version>
+                <configuration>
+                    <argLine>-javaagent:${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>
