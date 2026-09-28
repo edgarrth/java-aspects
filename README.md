@@ -52,11 +52,13 @@ Esta es la parte principal del proyecto.
 `IdempotencyAspect` hace lo siguiente:
 
 - usa SpEL para obtener dinámicamente la llave declarada en la anotación;
-- consulta `idempotency_records`;
-- si ya existe una respuesta completada, la reconstruye y evita ejecutar otra vez el caso de uso;
-- si es una ejecución nueva, registra el inicio;
-- al terminar guarda la respuesta serializada;
-- si ocurre un error elimina el registro incompleto para permitir un retry posterior.
+- reserva la llave en `idempotency_records` dentro de la misma transacción que crea el pago;
+- compara la huella SHA-256 de la solicitud antes de devolver una respuesta anterior;
+- si dos solicitudes iguales llegan a la vez, la segunda espera el resultado de la primera y recibe el mismo pago;
+- devuelve HTTP 409 si se reutiliza la llave con otro contenido o con un registro previo todavía en proceso;
+- si ocurre un error, la transacción revierte el pago y la reserva para permitir un nuevo intento.
+
+Los registros creados antes de V3 no tienen huella de solicitud. Su llave devuelve 409; se debe usar una llave nueva.
 
 Esto evita meter lógica de idempotencia dentro del caso de uso de pagos.
 
@@ -277,6 +279,7 @@ El esquema se administra únicamente con Flyway:
 ```text
 src/main/resources/db/migration/V1__create_payment_tables.sql
 src/main/resources/db/migration/V2__change_payment_currency_to_varchar.sql
+src/main/resources/db/migration/V3__add_idempotency_request_hash.sql
 ```
 
 Flyway crea:
@@ -306,6 +309,8 @@ mvn clean verify
 ```
 
 Durante `compile`, `maven-compiler-plugin` compila la aplicación con Java 25 y `aspectj-maven-plugin` recompila solamente `DomainWeavingAspect` con `ajc`. Esto evita hacer compile-time weaving del dominio y genera la infraestructura AspectJ que necesita LTW.
+
+Las pruebas de integración usan Testcontainers con PostgreSQL 18.6 y necesitan Docker activo. Cubren migraciones, API, idempotencia concurrente, auditoría, métricas y weaving. El plugin de AspectJ recompila el aspecto en cada build para preservar `aspectOf()` también en compilaciones incrementales.
 
 El `maven-surefire-plugin` arranca las pruebas con:
 
@@ -419,6 +424,8 @@ Qué se prueba:
 - el caso de uso no debe volver a procesar el pago;
 - `IdempotencyAspect` devuelve la respuesta persistida;
 - no se genera un segundo pago.
+
+Si se repite la llave con un monto u otro dato diferente, la API responde `409 Conflict`.
 
 ### Test 3. Forzar retry del gateway
 
