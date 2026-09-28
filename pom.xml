@@ -71,6 +71,16 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -110,6 +120,7 @@
                     <target>25</target>
                     <showWeaveInfo>true</showWeaveInfo>
                     <verbose>false</verbose>
+                    <forceAjcCompile>true</forceAjcCompile>
                     <includes>
                         <include>**/DomainWeavingAspect.java</include>
                     </includes>

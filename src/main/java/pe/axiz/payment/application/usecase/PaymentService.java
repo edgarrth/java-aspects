@@ -3,6 +3,7 @@ package pe.axiz.payment.application.usecase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.axiz.payment.application.command.CreatePaymentCommand;
+import pe.axiz.payment.application.exception.PaymentNotFoundException;
 import pe.axiz.payment.application.port.in.PaymentUseCase;
 import pe.axiz.payment.application.port.out.*;
 import pe.axiz.payment.application.view.PaymentView;
@@ -69,6 +70,6 @@ public class PaymentService implements PaymentUseCase {
     }
 
     private Payment load(UUID id) {
-        return payments.findById(id).orElseThrow(() -> new IllegalArgumentException("Pago no encontrado: " + id));
+        return payments.findById(id).orElseThrow(() -> new PaymentNotFoundException(id));
     }
 }
